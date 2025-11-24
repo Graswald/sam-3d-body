@@ -6,8 +6,8 @@ setup(
     author="Meta AI Research",
     description="Promptable model for single-image full-body 3D human mesh recovery",
     url="https://github.com/facebookresearch/sam-3d-body",
-    packages=find_packages(where="sam_3d_body"),
-    package_dir={"": "sam_3d_body"},
+    packages=find_packages(),  # ← Remove where parameter
+    # Remove package_dir entirely
     python_requires=">=3.10",
     install_requires=[
         "pytorch-lightning",
