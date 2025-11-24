@@ -37,7 +37,7 @@ setup(
         "cython",
         "jsonlines",
         "pytest",
-        "xtcocotools",
+        # "xtcocotools",
         "loguru",
         "optree",
         "fvcore>=0.1.5",
