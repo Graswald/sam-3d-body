@@ -158,6 +158,7 @@ class Renderer:
         scene_bg_color=(0, 0, 0),
         tri_color_lights=False,
         return_rgba=False,
+        rgba_render=False,
         camera_center=None,
     ) -> np.array:
         """
@@ -251,8 +252,12 @@ class Renderer:
         if return_rgba:
             return color
 
-        valid_mask = (color[:, :, -1])[:, :, np.newaxis]
-        output_img = color[:, :, :3] * valid_mask + (1 - valid_mask) * image
+        if rgba_render:
+            valid_mask = color[:, :, -1:]
+            output_img = color[:, :, :3] * valid_mask + (1 - valid_mask) * image[:, :, :3]
+        else:
+            valid_mask = (color[:, :, -1])[:, :, np.newaxis]
+            output_img = color[:, :, :3] * valid_mask + (1 - valid_mask) * image
 
         output_img = output_img.astype(np.float32)
         return output_img
