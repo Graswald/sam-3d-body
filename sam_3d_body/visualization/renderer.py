@@ -175,6 +175,7 @@ class Renderer:
             image = cv2.imread(imgname).astype(np.float32)
         image = image / 255.0
         h, w = image.shape[:2]
+        alphaMode="OPAQUE" if not rgba_render else "BLEND"
 
         renderer = pyrender.OffscreenRenderer(
             viewport_height=h,
@@ -186,7 +187,7 @@ class Renderer:
 
         material = pyrender.MetallicRoughnessMaterial(
             metallicFactor=0.0,
-            alphaMode="OPAQUE",
+            alphaMode=alphaMode,
             baseColorFactor=(
                 mesh_base_color[2],
                 mesh_base_color[1],
