@@ -45,5 +45,6 @@ setup(
         "pycocotools>=2.0.7",
         "tensorboard>=2.14.0",
         "huggingface-hub>=0.19.0",
+        "supervision"
     ],
 )
