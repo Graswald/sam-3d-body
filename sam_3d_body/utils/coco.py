@@ -2,26 +2,29 @@ import numpy as np
 import json
 import supervision as sv
 
-KPTS_OKS_SIGMAS_COCO = np.array([.26, .25, .25, .35, .35, .79, .79, .72, .72, .62,.62, 1.07, 1.07, .87, .87, .89, .89])/10.0
+from typing import List
+
+KPTS_OKS_SIGMAS_COCO = np.array(
+    [.26, .25, .25, .35, .35, .79, .79, .72, .72, .62, .62, 1.07, 1.07, .87, .87, .89, .89]) / 10.0
 
 MHR_TO_COCO = {
-    0: 0,   # nose
-    1: 1,   # left_eye
-    2: 2,   # right_eye
-    3: 3,   # left_ear
-    4: 4,   # right_ear
-    5: 5,   # left_shoulder
-    6: 6,   # right_shoulder
-    7: 7,   # left_elbow
-    8: 8,   # right_elbow
+    0: 0,  # nose
+    1: 1,  # left_eye
+    2: 2,  # right_eye
+    3: 3,  # left_ear
+    4: 4,  # right_ear
+    5: 5,  # left_shoulder
+    6: 6,  # right_shoulder
+    7: 7,  # left_elbow
+    8: 8,  # right_elbow
     62: 9,  # left_wrist
-    41: 10, # right_wrist
+    41: 10,  # right_wrist
     9: 11,  # left_hip
-    10: 12, # right_hip
-    11: 13, # left_knee
-    12: 14, # right_knee
-    13: 15, # left_ankle
-    14: 16, # right_ankle
+    10: 12,  # right_hip
+    11: 13,  # left_knee
+    12: 14,  # right_knee
+    13: 15,  # left_ankle
+    14: 16,  # right_ankle
 }
 
 
@@ -40,16 +43,21 @@ class KeypointConverter:
         coco_xy *= scale
         visibility = self.compute_visibility(coco_xy, width, height)
         # supervision expects batch dimension
-        xy = coco_xy[None, ...]                    # (1, 17, 2)
+        xy = coco_xy[None, ...]  # (1, 17, 2)
         confidence = visibility[None, ...].astype(np.float32)  # (1, 17)
         return sv.KeyPoints(xy=xy, confidence=confidence)
-
 
     @staticmethod
     def load_json(json_path):
         with open(json_path, 'r') as f:
             data = json.load(f)
         return data
+
+    @staticmethod
+    def annotate(image: np.ndarray, kp: sv.KeyPoints) -> np.ndarray:
+        kp_ann = sv.VertexAnnotator()
+        image = kp_ann.annotate(image.copy(), kp)
+        return image
 
     @staticmethod
     def mhr_to_coco(mhr_kpts):
@@ -91,3 +99,35 @@ class KeypointConverter:
 
         oks = np.mean(np.exp(-d2 / vars))
         return float(oks)
+
+
+def adjust_keypoints(pose_data: str, crop_box: List[int], output_file):
+    with open(pose_data, 'r') as f:
+        data = json.load(f)
+
+    x1, y1, x2, y2 = crop_box
+    width, height = int(x2 - x1), int(y2 - y1)
+    max_crop_dim = max(width, height)
+    for idx, _data in enumerate(data):
+        old_keypoints_2d = _data["pred_keypoints_2d"]
+        infer_resolution = int(_data["infer_resolution"])
+        old_scale = float(_data["scale_x"])
+
+        old_keypoints_2d = np.asarray(old_keypoints_2d)
+        adjusted_kpts = old_keypoints_2d.copy()
+        adjusted_kpts *= 1/old_scale
+        # Translate keypoints
+        adjusted_kpts[:, 0] -= x1  # adjust x coordinates
+        adjusted_kpts[:, 1] -= y1  # adjust y coordinates
+
+        new_scale_factor = infer_resolution / max_crop_dim
+        adjusted_kpts /= new_scale_factor
+
+        data[idx]["pred_keypoints_2d"] = adjusted_kpts.tolist()
+        data[idx]["scale_x"] = new_scale_factor
+        data[idx]["scale_y"] = new_scale_factor
+        data[idx]["original_width"] = width
+        data[idx]["original_height"] = height
+
+    with open(output_file, 'w') as f:
+        json.dump(data, f)
