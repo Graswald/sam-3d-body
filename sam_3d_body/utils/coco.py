@@ -2,6 +2,8 @@ import numpy as np
 import json
 import supervision as sv
 
+KPTS_OKS_SIGMAS_COCO = np.array([.26, .25, .25, .35, .35, .79, .79, .72, .72, .62,.62, 1.07, 1.07, .87, .87, .89, .89])/10.0
+
 MHR_TO_COCO = {
     0: 0,   # nose
     1: 1,   # left_eye
@@ -24,11 +26,11 @@ MHR_TO_COCO = {
 
 
 class KeypointConverter:
-    def __init__(self, pose_data_path: str):
-        self.pose_data_path = pose_data_path
+    def __init__(self):
+        pass
 
-    def convert_to_coco17(self):
-        data = self.load_json(self.pose_data_path)[0]
+    def convert_to_coco17(self, pose_data_path: str):
+        data = self.load_json(pose_data_path)[0]
         pred_keypoints_2d = data["pred_keypoints_2d"]
         scale = data["scale_x"]
         width = data["original_width"]
@@ -65,35 +67,27 @@ class KeypointConverter:
         return visible.astype(np.uint8)
 
     @staticmethod
-    def OKS(
-        kp1: sv.KeyPoints,
-        kp2: sv.KeyPoints,
-        sigmas: np.ndarray | None = None
-    ) -> float:
-        """
-        Object Keypoint Similarity (single instance)
-        """
-        k1 = kp1.xy[0]          # (K, 2)
+    def OKS(kp1: sv.KeyPoints, kp2: sv.KeyPoints) -> float:
+        k1 = kp1.xy[0]  # (17, 2)
         k2 = kp2.xy[0]
-        v1 = kp1.confidence[0] # (K,)
+        v1 = kp1.confidence[0]
         v2 = kp2.confidence[0]
 
         visible = (v1 > 0) & (v2 > 0)
-
         if visible.sum() == 0:
             return 0.0
 
         k1 = k1[visible]
         k2 = k2[visible]
+        sigmas = KPTS_OKS_SIGMAS_COCO[visible]
 
-        if sigmas is None:
-            sigmas = np.full(len(k1), 0.1, dtype=np.float32)
+        # --- object scale (bbox diagonal) ---
+        min_xy = np.minimum(k1.min(axis=0), k2.min(axis=0))
+        max_xy = np.maximum(k1.max(axis=0), k2.max(axis=0))
+        s = np.linalg.norm(max_xy - min_xy) + 1e-6
 
-        vars = (sigmas * 2) ** 2
         d2 = np.sum((k1 - k2) ** 2, axis=1)
+        vars = (2 * sigmas * s) ** 2
 
         oks = np.mean(np.exp(-d2 / vars))
         return float(oks)
-
-
-
