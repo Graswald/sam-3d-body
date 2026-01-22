@@ -1,6 +1,7 @@
 import numpy as np
 import json
 import supervision as sv
+from PIL import Image
 
 from typing import List
 
@@ -54,7 +55,7 @@ class KeypointConverter:
         return data
 
     @staticmethod
-    def annotate(image: np.ndarray, kp: sv.KeyPoints) -> np.ndarray:
+    def annotate(image: Image.Image, kp: sv.KeyPoints) -> Image.Image:
         kp_ann = sv.VertexAnnotator()
         image = kp_ann.annotate(image.copy(), kp)
         return image
@@ -121,7 +122,7 @@ def adjust_keypoints(pose_data: str, crop_box: List[int], output_file):
         adjusted_kpts[:, 1] -= y1  # adjust y coordinates
 
         new_scale_factor = infer_resolution / max_crop_dim
-        adjusted_kpts /= new_scale_factor
+        adjusted_kpts *=  new_scale_factor
 
         data[idx]["pred_keypoints_2d"] = adjusted_kpts.tolist()
         data[idx]["scale_x"] = new_scale_factor
