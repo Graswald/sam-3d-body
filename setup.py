@@ -45,6 +45,7 @@ setup(
         "pycocotools>=2.0.7",
         "tensorboard>=2.14.0",
         "huggingface-hub>=0.19.0",
-        "supervision"
+        "supervision",
+        "git+https://github.com/microsoft/MoGe.git@07444410f1e33f402353b99d6ccd26bd31e469e8"
     ],
 )
