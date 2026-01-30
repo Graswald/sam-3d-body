@@ -1176,19 +1176,12 @@ class SAM3DBody(BaseModel):
         return output
 
     def forward_step(
-        self, batch: Dict, decoder_type: str = "body"
+        self, batch: Dict
     ) -> Tuple[Dict, Dict]:
         batch_size, num_person = batch["img"].shape[:2]
 
-        if decoder_type == "body":
-            self.hand_batch_idx = []
-            self.body_batch_idx = list(range(batch_size * num_person))
-        elif decoder_type == "hand":
-            self.hand_batch_idx = list(range(batch_size * num_person))
-            self.body_batch_idx = []
-        else:
-            ValueError("Invalid decoder type: ", decoder_type)
-
+        self.hand_batch_idx = []
+        self.body_batch_idx = list(range(batch_size * num_person))
         # Crop-image (pose) branch
         pose_output = self.forward_pose_branch(batch)
 
@@ -1206,7 +1199,7 @@ class SAM3DBody(BaseModel):
             - body: inference with body decoder only (still full-body output)
             - hand: inference with hand decoder only (only hand output)
         """
-        pose_output = self.forward_step(batch, decoder_type="body")
+        pose_output = self.forward_step(batch)
         return pose_output
 
     def run_keypoint_prompt(self, batch, output, keypoint_prompt):
