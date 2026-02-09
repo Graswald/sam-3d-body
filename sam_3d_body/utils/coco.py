@@ -46,6 +46,8 @@ class KeypointConverter:
         # supervision expects batch dimension
         xy = coco_xy[None, ...]  # (1, 17, 2)
         confidence = visibility[None, ...].astype(np.float32)  # (1, 17)
+        # normalize keypoints
+        xy = xy / np.array([width, height]) 
         return sv.KeyPoints(xy=xy, confidence=confidence)
 
     @staticmethod
